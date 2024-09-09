@@ -14,6 +14,7 @@ class ViewICSPlugin extends \RainLoop\Plugins\AbstractPlugin
 	{
 //		$this->UseLangs(true);
 		$this->addJs('message.js');
+		$this->addJs('ical.es5.min.cjs');
 		$this->addJs('windowsZones.js');
 	}
 }
