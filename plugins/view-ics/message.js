@@ -39,11 +39,10 @@
 					<tr data-bind="visible: viewICS().ORGANIZER"><td>Organizer: </td><td data-bind="text: viewICS().ORGANIZER"></td></tr>
 					<tr><td>Start: </td><td data-bind="text: viewICS().DTSTART"></td></tr>
 					<tr><td>End: </td><td data-bind="text: viewICS().DTEND"></td></tr>
-					<tr><td>Location</td><td data-bind="text: viewICS().TRANSP"></td></tr>
+					<tr data-bind="visible: viewICS().LOCATION"><td>Location: </td><td data-bind="text: viewICS().LOCATION"></td></tr>
 <!--				<tr><td>Transparency</td><td data-bind="text: viewICS().TRANSP"></td></tr>-->
-					<tr data-bind="foreach: viewICS().ATTENDEE">
-						<td></td><td data-bind="text: $data.replace(/;/g,';\\n')"></td>
-					</tr>
+					<tr><td>Attendees: </td><td data-bind="foreach: viewICS().ATTENDEE"><span data-bind="text: $data.replace(/;/g,';\\n')"></span> </td>
+
 				</tbody></table>
 			</details>`));
 
@@ -106,6 +105,7 @@
 							VEVENT.SUMMARY = event.summary
 							VEVENT.DTSTART = parseDate(vevent.getFirstPropertyValue("dtstart"));
 							VEVENT.DTEND = parseDate(vevent.getFirstPropertyValue("dtend"));
+							VEVENT.LOCATION = event.location;
 							VEVENT.ATTENDEE = []
 							for(let attendee of event.attendees){
 								VEVENT.ATTENDEE.push(attendee.getFirstParameter("cn"));
