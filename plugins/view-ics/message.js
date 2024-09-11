@@ -36,7 +36,7 @@
 			<details data-bind="if: viewICS, visible: viewICS">
 				<summary data-icon="📅" data-bind="text: viewICS().SUMMARY"></summary>
 				<table><tbody style="white-space:pre">
-					<tr data-bind="visible: viewICS().ORGANIZER"><td>Organizer: </td><td data-bind="text: viewICS().ORGANIZER"></td></tr>
+					<tr data-bind="visible: viewICS().ORGANIZER_TXT"><td>Organizer: </td><td><a data-bind="text: viewICS().ORGANIZER_TXT, attr: { href: viewICS().ORGANIZER_MAIL }"></a></td></tr>
 					<tr><td>Start: </td><td data-bind="text: viewICS().DTSTART"></td></tr>
 					<tr><td>End: </td><td data-bind="text: viewICS().DTEND"></td></tr>
 					<tr data-bind="visible: viewICS().LOCATION"><td>Location: </td><td data-bind="text: viewICS().LOCATION"></td></tr>
@@ -96,13 +96,17 @@
 						rl.fetch(ics.linkDownload())
 						.then(response => (response.status < 400) ? response.text() : Promise.reject(new Error({ response })))
 						.then(text => {
-							console.log(ICAL.parse(text));
 							let jcalData = ICAL.parse(text)
 							var comp = new ICAL.Component(jcalData);
 							var vevent = comp.getFirstSubcomponent("vevent");
 							var event = new ICAL.Event(vevent);							
 							let VEVENT = {};
-							VEVENT.SUMMARY = event.summary
+							if(event.organizer.startsWith("mailto:")){
+								VEVENT.ORGANIZER_TXT=event.organizer.substr(7)
+								VEVENT.ORGANIZER_MAIL = event.organizer
+							} else
+								VEVENT.ORGANIZER_TXT=event.organizer
+							VEVENT.SUMMARY = event.summary;
 							VEVENT.DTSTART = parseDate(vevent.getFirstPropertyValue("dtstart"));
 							VEVENT.DTEND = parseDate(vevent.getFirstPropertyValue("dtend"));
 							VEVENT.LOCATION = event.location;
