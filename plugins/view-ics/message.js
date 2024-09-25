@@ -36,13 +36,13 @@
 			<details data-bind="if: viewICS, visible: viewICS">
 				<summary data-icon="📅" data-bind="text: viewICS().SUMMARY"></summary>
 				<table><tbody style="white-space:pre">
-					<tr data-bind="visible: viewICS().ORGANIZER"><td>Organizer</td><td data-bind="text: viewICS().ORGANIZER"></td></tr>
-					<tr><td>Start</td><td data-bind="text: viewICS().DTSTART"></td></tr>
-					<tr><td>End</td><td data-bind="text: viewICS().DTEND"></td></tr>
+					<tr data-bind="visible: viewICS().ORGANIZER_TXT"><td>Organizer: </td><td><a data-bind="text: viewICS().ORGANIZER_TXT, attr: { href: viewICS().ORGANIZER_MAIL }"></a></td></tr>
+					<tr><td>Start: </td><td data-bind="text: viewICS().DTSTART"></td></tr>
+					<tr><td>End: </td><td data-bind="text: viewICS().DTEND"></td></tr>
+					<tr data-bind="visible: viewICS().LOCATION"><td>Location: </td><td data-bind="text: viewICS().LOCATION"></td></tr>
 <!--				<tr><td>Transparency</td><td data-bind="text: viewICS().TRANSP"></td></tr>-->
-					<tr data-bind="foreach: viewICS().ATTENDEE">
-						<td></td><td data-bind="text: $data.replace(/;/g,';\\n')"></td>
-					</tr>
+					<tr><td>Attendees: </td><td data-bind="foreach: viewICS().ATTENDEE"><span data-bind="text: $data.replace(/;/g,';\\n')"></span> </td>
+
 				</tbody></table>
 			</details>`));
 
@@ -88,55 +88,33 @@
 					});
 					// ICS attachment
 //					let ics = msg.attachments.find(attachment => 'application/ics' == attachment.mimeType);
+
 					let ics = msg.attachments.find(attachment => 'text/calendar' == attachment.mimeType);
 					if (ics && ics.download) {
+
 						// fetch it and parse the VEVENT
 						rl.fetch(ics.linkDownload())
 						.then(response => (response.status < 400) ? response.text() : Promise.reject(new Error({ response })))
 						.then(text => {
-							let VEVENT,
-								VALARM,
-								multiple = ['ATTACH','ATTENDEE','CATEGORIES','COMMENT','CONTACT','EXDATE',
-									'EXRULE','RSTATUS','RELATED','RESOURCES','RDATE','RRULE'],
-								lines = text.split(/\r?\n/),
-								i = lines.length;
-							while (i--) {
-								let line = lines[i];
-								if (VEVENT) {
-									while (line.startsWith(' ') && i--) {
-										line = lines[i] + line.slice(1);
-									}
-									if (line.startsWith('END:VALARM')) {
-										VALARM = {};
-										continue;
-									} else if (line.startsWith('BEGIN:VALARM')) {
-										VEVENT.VALARM || (VEVENT.VALARM = []);
-										VEVENT.VALARM.push(VALARM);
-										VALARM = null;
-										continue;
-									} else if (line.startsWith('BEGIN:VEVENT')) {
-										break;
-									}
-									line = line.match(/^([^:;]+)[:;](.+)$/);
-									if (line) {
-										if (VALARM) {
-											VALARM[line[1]] = line[2];
-										} else if (multiple.includes(line[1]) || 'X-' == line[1].slice(0,2)) {
-											VEVENT[line[1]] || (VEVENT[line[1]] = []);
-											VEVENT[line[1]].push(line[2]);
-										} else {
-											if ('DTSTART' === line[1] || 'DTEND' === line[1]) {
-												line[2] = parseDate(line[2]);
-											}
-											VEVENT[line[1]] = line[2];
-										}
-									}
-								} else if (line.startsWith('END:VEVENT')) {
-									VEVENT = {};
-								}
+							let jcalData = ICAL.parse(text)
+							var comp = new ICAL.Component(jcalData);
+							var vevent = comp.getFirstSubcomponent("vevent");
+							var event = new ICAL.Event(vevent);							
+							let VEVENT = {};
+							if(event.organizer.startsWith("mailto:")){
+								VEVENT.ORGANIZER_TXT=event.organizer.substr(7)
+								VEVENT.ORGANIZER_MAIL = event.organizer
+							} else
+								VEVENT.ORGANIZER_TXT=event.organizer
+							VEVENT.SUMMARY = event.summary;
+							VEVENT.DTSTART = parseDate(vevent.getFirstPropertyValue("dtstart"));
+							VEVENT.DTEND = parseDate(vevent.getFirstPropertyValue("dtend"));
+							VEVENT.LOCATION = event.location;
+							VEVENT.ATTENDEE = []
+							for(let attendee of event.attendees){
+								VEVENT.ATTENDEE.push(attendee.getFirstParameter("cn"));
 							}
-//							METHOD:REPLY || METHOD:REQUEST
-//							console.dir({VEVENT:VEVENT});
+							
 							if (VEVENT) {
 								VEVENT.rawText = text;
 								VEVENT.isCancelled = () => VEVENT.STATUS?.includes('CANCELLED');
