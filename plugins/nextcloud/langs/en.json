@@ -9,6 +9,7 @@
 		"SELECT_CALENDAR": "Select calendar",
 		"FILE_ATTACH": "attach",
 		"FILE_INTERNAL": "internal",
-		"FILE_PUBLIC": "public"
+		"FILE_PUBLIC": "public",
+		"ADDRESS_BOOK": "Address Book"
 	}
 }
